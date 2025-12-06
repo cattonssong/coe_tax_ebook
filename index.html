@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>전자책 - 두 페이지 보기</title>
+  <title>전자책</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
 
   <style>
@@ -16,7 +16,6 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: #111;
       color: #fff;
-      /* 🔹 높이·스크롤 강제 금지 */
       min-height: 100vh;
     }
 
@@ -31,7 +30,6 @@
     .book {
       position: relative;
       width: 100%;
-      /* 🔹 높이를 고정하지 않고, 안쪽 내용에 맞게 자동 */
       border-radius: 12px;
       background: #222;
       overflow: hidden;
@@ -49,7 +47,6 @@
 
     .page-img {
       flex: 1;
-      /* 🔹 가로폭 기준으로 줄이기 */
       width: 50%;
       max-width: 50%;
       height: auto;
@@ -60,7 +57,7 @@
     }
 
     .page-img.hidden {
-      visibility: hidden;
+      display: none;
     }
 
     .nav-btn {
@@ -111,13 +108,13 @@
     .tap-left { left: 0; }
     .tap-right { right: 0; }
 
-    /* 🔹 모바일(좁은 화면)에서는 한 페이지씩 크게 보기 */
+    /* 모바일: 이미지 한 장이 화면 폭 꽉 채우도록 */
     @media (max-width: 768px) {
       .book {
         padding: 8px;
       }
       .pages {
-        flex-direction: column;   /* 위아래로 쌓기 */
+        justify-content: center;
       }
       .page-img {
         width: 100%;
@@ -127,7 +124,7 @@
         top: 45%;
       }
       .tap-area {
-        width: 100%;  /* 전체 탭 영역 */
+        width: 100%;
         height: 50%;
       }
       .tap-left {
@@ -135,8 +132,8 @@
       }
       .tap-right {
         top: 50%;
-        right: 0;
         left: 0;
+        right: 0;
       }
     }
   </style>
@@ -148,7 +145,7 @@
       <button class="nav-btn nav-next" id="nextBtn">&#10095;</button>
 
       <div class="pages">
-        <img id="pageLeft" class="page-img" alt="왼쪽 페이지" />
+        <img id="pageLeft"  class="page-img" alt="왼쪽/단일 페이지" />
         <img id="pageRight" class="page-img" alt="오른쪽 페이지" />
       </div>
 
@@ -160,7 +157,7 @@
   </div>
 
   <script>
-    /* ✅ 1 ~ 27페이지 */
+    // ✅ 1 ~ 27 페이지
     const pages = [
       "img/page-1.jpg",
       "img/page-3.jpg",
@@ -190,6 +187,8 @@
       "img/page-27.jpg"
     ];
 
+    const BREAKPOINT = 768; // 이 이하면 모바일 모드(한 페이지)
+
     const imgLeft  = document.getElementById("pageLeft");
     const imgRight = document.getElementById("pageRight");
     const pageInfo = document.getElementById("pageInfo");
@@ -199,47 +198,94 @@
     const tapRight = document.getElementById("tapRight");
     const bookEl   = document.getElementById("book");
 
-    // spreadIndex 0 → 1·2페이지, 1 → 3·4페이지 ...
-    let spreadIndex = 0;
-    const maxSpread = Math.floor((pages.length - 1) / 2);
+    // 상태
+    let isSingle = window.innerWidth <= BREAKPOINT; // true: 한 페이지, false: 두 페이지
+    let singlePageIndex = 0; // 모바일 모드용
+    let spreadIndex = 0;     // PC 모드용 (0 → 1·2, 1 → 3·4 ...)
 
-    function updateSpread() {
-      const leftIndex  = spreadIndex * 2;
-      const rightIndex = leftIndex + 1;
+    function getMaxSpread() {
+      return Math.floor((pages.length - 1) / 2);
+    }
 
-      imgLeft.src = pages[leftIndex];
+    function updateView() {
+      if (isSingle) {
+        // 🔹 한 페이지 모드
+        if (singlePageIndex < 0) singlePageIndex = 0;
+        if (singlePageIndex >= pages.length) singlePageIndex = pages.length - 1;
 
-      if (rightIndex < pages.length) {
-        imgRight.src = pages[rightIndex];
-        imgRight.classList.remove("hidden");
-      } else {
+        imgLeft.src = pages[singlePageIndex];
+        imgLeft.classList.remove("hidden");
         imgRight.classList.add("hidden");
+
+        pageInfo.textContent = `${singlePageIndex + 1} / ${pages.length}쪽`;
+
+        prevBtn.disabled = singlePageIndex === 0;
+        nextBtn.disabled = singlePageIndex === pages.length - 1;
+      } else {
+        // 🔹 두 페이지 모드
+        const maxSpread = getMaxSpread();
+        if (spreadIndex < 0) spreadIndex = 0;
+        if (spreadIndex > maxSpread) spreadIndex = maxSpread;
+
+        const leftIndex  = spreadIndex * 2;
+        const rightIndex = leftIndex + 1;
+
+        imgLeft.src = pages[leftIndex];
+        imgLeft.classList.remove("hidden");
+
+        if (rightIndex < pages.length) {
+          imgRight.src = pages[rightIndex];
+          imgRight.classList.remove("hidden");
+        } else {
+          imgRight.classList.add("hidden");
+        }
+
+        let label = `${leftIndex + 1}`;
+        if (rightIndex < pages.length) {
+          label += `–${rightIndex + 1}`;
+        }
+        label += ` / ${pages.length}쪽`;
+        pageInfo.textContent = label;
+
+        prevBtn.disabled = spreadIndex === 0;
+        nextBtn.disabled = spreadIndex === maxSpread;
       }
-
-      let label = `${leftIndex + 1}`;
-      if (rightIndex < pages.length) {
-        label += `–${rightIndex + 1}`;
-      }
-      label += ` / ${pages.length}쪽`;
-
-      pageInfo.textContent = label;
-
-      prevBtn.disabled = spreadIndex === 0;
-      nextBtn.disabled = spreadIndex === maxSpread;
     }
 
-    function goToSpread(target) {
-      if (target < 0 || target > maxSpread) return;
-      if (target === spreadIndex) return;
-      spreadIndex = target;
-      updateSpread();
+    function goPrev() {
+      if (isSingle) {
+        if (singlePageIndex > 0) {
+          singlePageIndex -= 1;
+          updateView();
+        }
+      } else {
+        if (spreadIndex > 0) {
+          spreadIndex -= 1;
+          updateView();
+        }
+      }
     }
 
-    prevBtn.addEventListener("click", () => goToSpread(spreadIndex - 1));
-    nextBtn.addEventListener("click", () => goToSpread(spreadIndex + 1));
+    function goNext() {
+      if (isSingle) {
+        if (singlePageIndex < pages.length - 1) {
+          singlePageIndex += 1;
+          updateView();
+        }
+      } else {
+        const maxSpread = getMaxSpread();
+        if (spreadIndex < maxSpread) {
+          spreadIndex += 1;
+          updateView();
+        }
+      }
+    }
 
-    tapLeft.addEventListener("click", () => goToSpread(spreadIndex - 1));
-    tapRight.addEventListener("click", () => goToSpread(spreadIndex + 1));
+    prevBtn.addEventListener("click", goPrev);
+    nextBtn.addEventListener("click", goNext);
+
+    tapLeft.addEventListener("click", goPrev);
+    tapRight.addEventListener("click", goNext);
 
     // 모바일 스와이프
     let touchStartX = null;
@@ -254,17 +300,32 @@
 
       if (Math.abs(diffX) > 40) {
         if (diffX < 0) {
-          goToSpread(spreadIndex + 1); // 왼쪽 스와이프 → 다음
+          goNext();  // 왼쪽으로 스와이프 → 다음
         } else {
-          goToSpread(spreadIndex - 1); // 오른쪽 스와이프 → 이전
+          goPrev();  // 오른쪽으로 스와이프 → 이전
         }
       }
       touchStartX = null;
     });
 
-    updateSpread();
+    // 화면 크기 바뀔 때 PC↔모바일 모드 전환
+    window.addEventListener("resize", () => {
+      const newIsSingle = window.innerWidth <= BREAKPOINT;
+      if (newIsSingle !== isSingle) {
+        if (newIsSingle) {
+          // 두 페이지 → 한 페이지로 바뀔 때: 왼쪽 페이지 기준으로 단일 페이지 인덱스 세팅
+          singlePageIndex = spreadIndex * 2;
+        } else {
+          // 한 페이지 → 두 페이지로 바뀔 때: 현재 페이지가 포함된 펼침으로 이동
+          spreadIndex = Math.floor(singlePageIndex / 2);
+        }
+        isSingle = newIsSingle;
+        updateView();
+      }
+    });
+
+    // 첫 화면
+    updateView();
   </script>
 </body>
 </html>
-
-
