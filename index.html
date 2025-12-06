@@ -11,43 +11,36 @@
       margin: 0;
       padding: 0;
     }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: #111;
       color: #fff;
-      height: 100vh;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      /* 🔹 높이·스크롤 강제 금지 */
+      min-height: 100vh;
     }
 
     .book-wrapper {
       position: relative;
-      width: 100vw;
-      height: 100vh;
+      width: 100%;
       max-width: 1100px;
-      max-height: 1280px;
-      padding: 16px;
+      margin: 12px auto 24px auto;
+      padding: 12px;
     }
 
     .book {
       position: relative;
       width: 100%;
-      height: 100%;
+      /* 🔹 높이를 고정하지 않고, 안쪽 내용에 맞게 자동 */
       border-radius: 12px;
       background: #222;
       overflow: hidden;
       box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-      display: flex;
-      align-items: center;
-      justify-content: center;
       padding: 10px;
     }
 
     .pages {
       width: 100%;
-      height: 100%;
       display: flex;
       gap: 8px;
       align-items: center;
@@ -56,8 +49,11 @@
 
     .page-img {
       flex: 1;
+      /* 🔹 가로폭 기준으로 줄이기 */
+      width: 50%;
       max-width: 50%;
-      max-height: 100%;
+      height: auto;
+      max-height: none;
       object-fit: contain;
       background: #fff;
       border-radius: 6px;
@@ -93,14 +89,16 @@
     .nav-next { right: 8px; }
 
     .bottom-bar {
-      position: absolute;
-      bottom: 8px;
-      left: 50%;
-      transform: translateX(-50%);
+      position: relative;
+      margin-top: 6px;
+      text-align: center;
       padding: 6px 12px;
       background: rgba(0,0,0,0.5);
       border-radius: 999px;
       font-size: 12px;
+      width: fit-content;
+      margin-left: auto;
+      margin-right: auto;
     }
 
     .tap-area {
@@ -113,13 +111,32 @@
     .tap-left { left: 0; }
     .tap-right { right: 0; }
 
-    /* 화면이 아주 좁을 때는 한 장씩만 크게 보여주기 (옵션) */
-    @media (max-width: 600px) {
+    /* 🔹 모바일(좁은 화면)에서는 한 페이지씩 크게 보기 */
+    @media (max-width: 768px) {
+      .book {
+        padding: 8px;
+      }
       .pages {
-        flex-direction: column;
+        flex-direction: column;   /* 위아래로 쌓기 */
       }
       .page-img {
+        width: 100%;
         max-width: 100%;
+      }
+      .nav-prev, .nav-next {
+        top: 45%;
+      }
+      .tap-area {
+        width: 100%;  /* 전체 탭 영역 */
+        height: 50%;
+      }
+      .tap-left {
+        top: 0;
+      }
+      .tap-right {
+        top: 50%;
+        right: 0;
+        left: 0;
       }
     }
   </style>
@@ -143,37 +160,35 @@
   </div>
 
   <script>
-    // ✅ 쏭이 가진 실제 이미지 개수에 맞춰 여기만 수정하면 돼
-    // ✅ 1페이지 ~ 27페이지까지 전부 등록한 버전
-const pages = [
-  "img/page-1.jpg",
-  "img/page-3.jpg",
-  "img/page-4.jpg",
-  "img/page-5.jpg",
-  "img/page-6.jpg",
-  "img/page-7.jpg",
-  "img/page-8.jpg",
-  "img/page-9.jpg",
-  "img/page-10.jpg",
-  "img/page-11.jpg",
-  "img/page-12.jpg",
-  "img/page-13.jpg",
-  "img/page-14.jpg",
-  "img/page-15.jpg",
-  "img/page-16.jpg",
-  "img/page-17.jpg",
-  "img/page-18.jpg",
-  "img/page-19.jpg",
-  "img/page-20.jpg",
-  "img/page-21.jpg",
-  "img/page-22.jpg",
-  "img/page-23.jpg",
-  "img/page-24.jpg",
-  "img/page-25.jpg",
-  "img/page-26.jpg",
-  "img/page-27.jpg"
-];
-
+    /* ✅ 1 ~ 27페이지 */
+    const pages = [
+      "img/page-1.jpg",
+      "img/page-3.jpg",
+      "img/page-4.jpg",
+      "img/page-5.jpg",
+      "img/page-6.jpg",
+      "img/page-7.jpg",
+      "img/page-8.jpg",
+      "img/page-9.jpg",
+      "img/page-10.jpg",
+      "img/page-11.jpg",
+      "img/page-12.jpg",
+      "img/page-13.jpg",
+      "img/page-14.jpg",
+      "img/page-15.jpg",
+      "img/page-16.jpg",
+      "img/page-17.jpg",
+      "img/page-18.jpg",
+      "img/page-19.jpg",
+      "img/page-20.jpg",
+      "img/page-21.jpg",
+      "img/page-22.jpg",
+      "img/page-23.jpg",
+      "img/page-24.jpg",
+      "img/page-25.jpg",
+      "img/page-26.jpg",
+      "img/page-27.jpg"
+    ];
 
     const imgLeft  = document.getElementById("pageLeft");
     const imgRight = document.getElementById("pageRight");
@@ -184,18 +199,16 @@ const pages = [
     const tapRight = document.getElementById("tapRight");
     const bookEl   = document.getElementById("book");
 
-    // spreadIndex 0 → 1·2페이지, 1 → 3·4페이지, 이런 식
+    // spreadIndex 0 → 1·2페이지, 1 → 3·4페이지 ...
     let spreadIndex = 0;
-    const maxSpread = Math.floor((pages.length - 1) / 2); // ceil(n/2)-1 과 같음
+    const maxSpread = Math.floor((pages.length - 1) / 2);
 
     function updateSpread() {
       const leftIndex  = spreadIndex * 2;
       const rightIndex = leftIndex + 1;
 
-      // 왼쪽 페이지 (무조건 존재한다고 가정)
       imgLeft.src = pages[leftIndex];
 
-      // 오른쪽 페이지 (마지막이 홀수일 수도 있음)
       if (rightIndex < pages.length) {
         imgRight.src = pages[rightIndex];
         imgRight.classList.remove("hidden");
@@ -203,7 +216,6 @@ const pages = [
         imgRight.classList.add("hidden");
       }
 
-      // 하단 페이지 표시 (예: "1–2 / 5쪽" 또는 "5 / 5쪽")
       let label = `${leftIndex + 1}`;
       if (rightIndex < pages.length) {
         label += `–${rightIndex + 1}`;
@@ -242,16 +254,17 @@ const pages = [
 
       if (Math.abs(diffX) > 40) {
         if (diffX < 0) {
-          goToSpread(spreadIndex + 1); // 왼쪽으로 스와이프 → 다음 장(다음 2페이지)
+          goToSpread(spreadIndex + 1); // 왼쪽 스와이프 → 다음
         } else {
-          goToSpread(spreadIndex - 1); // 오른쪽으로 스와이프 → 이전 장
+          goToSpread(spreadIndex - 1); // 오른쪽 스와이프 → 이전
         }
       }
       touchStartX = null;
     });
 
-    // 첫 화면
     updateSpread();
   </script>
 </body>
 </html>
+
+
